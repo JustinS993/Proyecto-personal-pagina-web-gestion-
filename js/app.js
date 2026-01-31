@@ -67,9 +67,15 @@ function initUsers() {
       { id: uid(), username: 'empleado', password: 'empleado123', role: 'employee', createdAt: new Date().toISOString() }
     );
     saveUsers();
-  } else if (!users.some((u) => u.username === 'empleado')) {
-    users.push({ id: uid(), username: 'empleado', password: 'empleado123', role: 'employee', createdAt: new Date().toISOString() });
-    saveUsers();
+  } else {
+    if (!users.some((u) => u.username === 'admin')) {
+      users.unshift({ id: uid(), username: 'admin', password: 'admin123', role: 'admin', createdAt: new Date().toISOString() });
+      saveUsers();
+    }
+    if (!users.some((u) => u.username === 'empleado')) {
+      users.push({ id: uid(), username: 'empleado', password: 'empleado123', role: 'employee', createdAt: new Date().toISOString() });
+      saveUsers();
+    }
   }
 }
 
@@ -212,13 +218,15 @@ function renderUsersList() {
 function formatDate(str) {
   if (!str) return '';
   const d = new Date(str + 'T12:00:00');
+  if (isNaN(d.getTime())) return str;
   return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function formatTime(str) {
-  if (!str) return '';
+  if (!str || typeof str !== 'string') return '';
   const [h, m] = str.split(':');
-  return `${h.padStart(2, '0')}:${m || '00'}`;
+  if (!h) return '';
+  return `${String(h).padStart(2, '0')}:${m || '00'}`;
 }
 
 function toDateOnly(d) {
@@ -233,7 +241,9 @@ function isToday(dateStr) {
 }
 
 function isThisWeek(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return false;
   const d = new Date(dateStr + 'T12:00:00');
+  if (isNaN(d.getTime())) return false;
   const now = new Date();
   const start = new Date(now);
   start.setDate(now.getDate() - now.getDay());
@@ -281,10 +291,10 @@ function updateDashboard() {
 
   const today = toDateOnly(new Date());
   const todayAppointments = appointments.filter(
-    (a) => a.date === today && a.status !== 'cancelled'
+    (a) => a.date && a.date === today && a.status !== 'cancelled'
   );
   const weekAppointments = appointments.filter(
-    (a) => isThisWeek(a.date) && a.status !== 'cancelled'
+    (a) => a.date && isThisWeek(a.date) && a.status !== 'cancelled'
   );
 
   if (statToday) statToday.textContent = todayAppointments.length;
@@ -343,10 +353,11 @@ function escapeHtml(text) {
 function renderAppointmentsList() {
   const listEl = document.getElementById('appointments-list');
   const emptyEl = document.getElementById('appointments-empty');
+  if (!listEl || !emptyEl) return;
   const statusFilter = document.getElementById('filter-status').value;
   const dateFilter = document.getElementById('filter-date').value;
 
-  let filtered = [...appointments];
+  let filtered = [...appointments].filter((a) => a && a.id);
   if (statusFilter !== 'all') filtered = filtered.filter((a) => a.status === statusFilter);
   if (dateFilter) filtered = filtered.filter((a) => a.date === dateFilter);
   filtered.sort((a, b) => {
@@ -619,6 +630,14 @@ function fillEditPatientSelect(selectedId) {
   const sel = document.getElementById('edit-patient-select');
   if (!sel) return;
   sel.innerHTML = '';
+  sel.required = patients.length > 0;
+  if (patients.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = '— No hay pacientes —';
+    sel.appendChild(opt);
+    return;
+  }
   patients.forEach((p) => {
     const opt = document.createElement('option');
     opt.value = p.id;
@@ -683,9 +702,13 @@ function initAppointmentModal() {
       e.preventDefault();
       const id = document.getElementById('edit-appointment-id').value;
       const apt = appointments.find((a) => a.id === id);
-      if (!apt) return;
+      const patientId = document.getElementById('edit-patient-select').value;
+      if (!apt || !patientId) {
+        if (!patientId) alert('Debes seleccionar un paciente. Crea uno si no hay ninguno.');
+        return;
+      }
 
-      apt.patientId = document.getElementById('edit-patient-select').value;
+      apt.patientId = patientId;
       apt.date = document.getElementById('edit-appointment-date').value;
       apt.time = document.getElementById('edit-appointment-time').value;
       apt.type = document.getElementById('edit-appointment-type').value;
