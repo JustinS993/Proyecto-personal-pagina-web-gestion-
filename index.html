@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Citas — Consultorio de Psicología</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Libre+Baskerville:ital,wght@0,400;0,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Vista de Login -->
+  <div id="view-login" class="login-container">
+    <div class="login-box">
+      <h1>Psicología & Bienestar</h1>
+      <p>Inicia sesión para continuar</p>
+      <p class="login-hint">Admin: admin / admin123 — Empleado: empleado / empleado123</p>
+      <form id="form-login">
+        <div class="form-row">
+          <label for="login-username">Usuario</label>
+          <input type="text" id="login-username" required>
+        </div>
+        <div class="form-row">
+          <label for="login-password">Contraseña</label>
+          <input type="password" id="login-password" required>
+        </div>
+        <p id="login-error" class="error-msg hidden"></p>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary full-width">Entrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="app-main" class="app hidden">
+    <header class="header">
+      <div class="header-inner">
+        <div>
+          <h1 class="logo">Psicología & Bienestar</h1>
+          <p class="tagline">Gestión de citas</p>
+        </div>
+        <div class="header-user">
+          <span id="current-user-name"></span>
+          <span id="current-user-role" class="user-role-badge"></span>
+          <button type="button" class="btn-text" id="btn-logout">Cerrar sesión</button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="nav">
+      <button type="button" class="nav-btn active" data-view="dashboard">Inicio</button>
+      <button type="button" class="nav-btn" data-view="appointments">Citas</button>
+      <button type="button" class="nav-btn" data-view="new-appointment">Nueva cita</button>
+      <button type="button" class="nav-btn" data-view="patients">Pacientes</button>
+      <button type="button" class="nav-btn nav-admin hidden" data-view="users">Usuarios</button>
+    </nav>
+
+    <main class="main">
+      <section id="view-dashboard" class="view active">
+        <div class="dashboard">
+          <h2>Resumen del día</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-value" id="stat-today">0</span>
+              <span class="stat-label">Citas hoy</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value" id="stat-week">0</span>
+              <span class="stat-label">Esta semana</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value" id="stat-patients">0</span>
+              <span class="stat-label">Pacientes</span>
+            </div>
+          </div>
+          <div class="today-list">
+            <h3>Próximas citas de hoy</h3>
+            <div id="dashboard-today-list" class="appointment-list"></div>
+            <p id="dashboard-empty" class="empty-msg hidden">No hay citas programadas para hoy.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-appointments" class="view">
+        <div class="section-header">
+          <h2>Todas las citas</h2>
+          <div class="filters">
+            <select id="filter-status">
+              <option value="all">Todas</option>
+              <option value="pending">Pendientes</option>
+              <option value="completed">Completadas</option>
+              <option value="cancelled">Canceladas</option>
+            </select>
+            <input type="date" id="filter-date" placeholder="Filtrar por fecha">
+          </div>
+        </div>
+        <div id="appointments-list" class="appointment-list"></div>
+        <p id="appointments-empty" class="empty-msg hidden">No hay citas.</p>
+      </section>
+
+      <section id="view-new-appointment" class="view">
+        <h2>Agendar nueva cita</h2>
+        <form id="form-appointment" class="form-appointment">
+          <div class="form-row">
+            <label for="patient-select">Paciente</label>
+            <div class="input-group">
+              <select id="patient-select" required>
+                <option value="">— Seleccionar paciente —</option>
+              </select>
+              <button type="button" class="btn btn-outline" id="btn-new-patient">+ Nuevo</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <label for="appointment-date">Fecha</label>
+            <input type="date" id="appointment-date" required>
+          </div>
+          <div class="form-row">
+            <label for="appointment-time">Hora</label>
+            <input type="time" id="appointment-time" required>
+          </div>
+          <div class="form-row">
+            <label for="appointment-type">Tipo de sesión</label>
+            <select id="appointment-type">
+              <option value="individual">Individual</option>
+              <option value="pareja">Pareja</option>
+              <option value="familiar">Familiar</option>
+              <option value="niños">Niños/Adolescentes</option>
+              <option value="online">Online</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="appointment-notes">Notas (opcional)</label>
+            <textarea id="appointment-notes" rows="3" placeholder="Observaciones, recordatorios..."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar cita</button>
+            <button type="reset" class="btn btn-outline">Limpiar</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="view-patients" class="view">
+        <div class="section-header">
+          <h2>Pacientes</h2>
+          <button type="button" class="btn btn-primary" id="btn-add-patient">+ Nuevo paciente</button>
+        </div>
+        <div id="patients-list" class="patients-grid"></div>
+        <p id="patients-empty" class="empty-msg hidden">No hay pacientes registrados.</p>
+      </section>
+
+      <section id="view-users" class="view">
+        <div class="section-header">
+          <h2>Gestión de Usuarios</h2>
+          <button type="button" class="btn btn-primary" id="btn-add-user">+ Nuevo usuario</button>
+        </div>
+        <div id="users-list" class="users-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="modal-patient" class="modal">
+    <div class="modal-content">
+      <h3 id="modal-patient-title">Nuevo paciente</h3>
+      <form id="form-patient">
+        <input type="hidden" id="patient-id">
+        <div class="form-row">
+          <label for="patient-name">Nombre completo</label>
+          <input type="text" id="patient-name" required placeholder="Ej. María García López">
+        </div>
+        <div class="form-row">
+          <label for="patient-phone">Teléfono</label>
+          <input type="tel" id="patient-phone" placeholder="Ej. 612 345 678">
+        </div>
+        <div class="form-row">
+          <label for="patient-email">Email</label>
+          <input type="email" id="patient-email" placeholder="ejemplo@correo.com">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-outline" data-close-modal>Cancelar</button>
+          <button type="button" class="btn btn-danger hidden" id="btn-delete-patient">Eliminar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="modal-appointment" class="modal">
+    <div class="modal-content">
+      <h3 id="modal-appointment-title">Detalle de cita</h3>
+      <div id="appointment-detail"></div>
+      <div class="modal-actions" id="appointment-detail-actions">
+        <button type="button" class="btn btn-outline" id="btn-edit-appointment">Editar</button>
+        <button type="button" class="btn btn-danger" id="btn-cancel-appointment">Cancelar cita</button>
+        <button type="button" class="btn btn-outline" data-close-modal>Cerrar</button>
+      </div>
+      <form id="form-edit-appointment" class="hidden">
+        <input type="hidden" id="edit-appointment-id">
+        <div class="form-row">
+          <label for="edit-patient-select">Paciente</label>
+          <select id="edit-patient-select" required></select>
+        </div>
+        <div class="form-row">
+          <label for="edit-appointment-date">Fecha</label>
+          <input type="date" id="edit-appointment-date" required>
+        </div>
+        <div class="form-row">
+          <label for="edit-appointment-time">Hora</label>
+          <input type="time" id="edit-appointment-time" required>
+        </div>
+        <div class="form-row">
+          <label for="edit-appointment-type">Tipo de sesión</label>
+          <select id="edit-appointment-type">
+            <option value="individual">Individual</option>
+            <option value="pareja">Pareja</option>
+            <option value="familiar">Familiar</option>
+            <option value="niños">Niños/Adolescentes</option>
+            <option value="online">Online</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="edit-appointment-status">Estado</label>
+          <select id="edit-appointment-status">
+            <option value="pending">Pendiente</option>
+            <option value="completed">Completada</option>
+            <option value="cancelled">Cancelada</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="edit-appointment-notes">Notas</label>
+          <textarea id="edit-appointment-notes" rows="3"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Guardar cambios</button>
+          <button type="button" class="btn btn-outline" id="btn-cancel-edit">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="modal-user" class="modal">
+    <div class="modal-content">
+      <h3>Nuevo Usuario</h3>
+      <form id="form-user">
+        <div class="form-row">
+          <label for="user-username">Nombre de usuario</label>
+          <input type="text" id="user-username" required>
+        </div>
+        <div class="form-row">
+          <label for="user-password">Contraseña</label>
+          <input type="password" id="user-password" required>
+        </div>
+        <div class="form-row">
+          <label for="user-role">Rol</label>
+          <select id="user-role" required>
+            <option value="employee">Empleado (Normal)</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Crear Usuario</button>
+          <button type="button" class="btn btn-outline" data-close-modal>Cerrar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
