@@ -38,7 +38,7 @@ body {
 }
 
 .app {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 0 1.25rem 3rem;
 }
@@ -399,6 +399,45 @@ body {
   box-shadow: var(--shadow-hover);
 }
 
+/* Registro de modificaciones */
+.audit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.audit-item {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(45, 52, 54, 0.04);
+  box-shadow: var(--shadow);
+}
+
+.audit-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.audit-body {
+  color: var(--slate);
+}
+
+.cancel-info {
+  background: rgba(193, 123, 123, 0.05);
+  padding: 0.6rem;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+}
+
+.muted {
+  color: var(--slate-light);
+  font-size: 0.85rem;
+}
+
 .patient-card .name {
   font-weight: 600;
   color: var(--charcoal);
@@ -536,6 +575,168 @@ body {
   margin-top: 1rem;
 }
 
+/* Calendar */
+.calendar-header {
+  flex-wrap: wrap;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.calendar-nav span {
+  font-weight: 600;
+  color: var(--charcoal);
+  min-width: 180px;
+  text-align: center;
+}
+
+.calendar-container {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--beige-warm);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calendar-weekday {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--slate-light);
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.calendar-day {
+  min-height: 90px;
+  padding: 0.4rem;
+  border-radius: var(--radius-sm);
+  background: var(--mist);
+  border: 1px solid transparent;
+}
+
+.calendar-day.other-month {
+  background: var(--beige);
+  opacity: 0.6;
+}
+
+.calendar-day-number {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--slate);
+  margin-bottom: 0.25rem;
+}
+
+.calendar-day.today .calendar-day-number {
+  color: var(--sage-dark);
+}
+
+.calendar-appointments {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calendar-apt {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-apt:hover {
+  opacity: 0.9;
+}
+
+.calendar-apt.pending { background: rgba(196, 167, 125, 0.35); color: var(--terracotta-muted); }
+.calendar-apt.completed { background: rgba(123, 158, 123, 0.35); color: var(--success); }
+.calendar-apt.cancelled { background: rgba(193, 123, 123, 0.25); color: var(--danger); }
+
+.calendar-legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--slate-light);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.dot-pending { background: var(--terracotta-muted); }
+.dot-completed { background: var(--success); }
+.dot-cancelled { background: var(--danger); }
+
+/* Psychologists */
+.section-hint {
+  font-size: 0.9rem;
+  color: var(--slate-light);
+  margin: -0.5rem 0 1rem;
+}
+
+.psychologists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.psychologist-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(156, 170, 138, 0.15);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.psychologist-card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+.psychologist-info {
+  flex: 1;
+}
+
+.psychologist-name {
+  font-weight: 600;
+  color: var(--charcoal);
+  margin-bottom: 0.25rem;
+}
+
+.psychologist-specialty {
+  font-size: 0.85rem;
+  color: var(--slate-light);
+}
+
+.psychologist-card .actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
 /* Utils */
 .empty-msg {
   color: var(--slate-light);
@@ -573,5 +774,19 @@ body {
 
   .input-group {
     flex-direction: column;
+  }
+
+  .calendar-nav {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .calendar-day {
+    min-height: 70px;
+    font-size: 0.75rem;
+  }
+
+  .calendar-apt {
+    font-size: 0.65rem;
   }
 }

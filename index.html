@@ -53,7 +53,11 @@
       <button type="button" class="nav-btn" data-view="appointments">Citas</button>
       <button type="button" class="nav-btn" data-view="new-appointment">Nueva cita</button>
       <button type="button" class="nav-btn" data-view="patients">Pacientes</button>
+      <button type="button" class="nav-btn nav-admin hidden" data-view="calendar">Calendario</button>
+      <button type="button" class="nav-btn" data-view="my-schedule">Mi agenda</button>
+      <button type="button" class="nav-btn nav-admin hidden" data-view="psychologists">Psicólogos</button>
       <button type="button" class="nav-btn nav-admin hidden" data-view="users">Usuarios</button>
+      <button type="button" class="nav-btn nav-admin hidden" data-view="audit">Registro de modificaciones</button>
     </nav>
 
     <main class="main">
@@ -120,6 +124,12 @@
             <input type="time" id="appointment-time" required>
           </div>
           <div class="form-row">
+            <label for="appointment-psychologist">Psicólogo asignado</label>
+            <select id="appointment-psychologist">
+              <option value="">— Sin asignar —</option>
+            </select>
+          </div>
+          <div class="form-row">
             <label for="appointment-type">Tipo de sesión</label>
             <select id="appointment-type">
               <option value="individual">Individual</option>
@@ -147,6 +157,67 @@
         </div>
         <div id="patients-list" class="patients-grid"></div>
         <p id="patients-empty" class="empty-msg hidden">No hay pacientes registrados.</p>
+      </section>
+
+      <section id="view-calendar" class="view">
+        <div class="section-header calendar-header">
+          <h2>Calendario de citas</h2>
+          <div class="calendar-nav">
+            <button type="button" class="btn btn-outline" id="calendar-prev">← Anterior</button>
+            <span id="calendar-month-year"></span>
+            <button type="button" class="btn btn-outline" id="calendar-next">Siguiente →</button>
+          </div>
+        </div>
+        <div id="calendar-container" class="calendar-container"></div>
+        <div id="calendar-legend" class="calendar-legend">
+          <span class="legend-item"><span class="dot dot-pending"></span> Pendiente</span>
+          <span class="legend-item"><span class="dot dot-completed"></span> Completada</span>
+          <span class="legend-item"><span class="dot dot-cancelled"></span> Cancelada</span>
+        </div>
+      </section>
+
+      <section id="view-psychologists" class="view">
+        <div class="section-header">
+          <h2>Psicólogos</h2>
+          <button type="button" class="btn btn-primary" id="btn-add-psychologist">+ Nuevo psicólogo</button>
+        </div>
+        <p class="section-hint">Los psicólogos pueden asignarse a las citas para indicar quién atenderá a cada paciente.</p>
+        <div id="psychologists-list" class="psychologists-grid"></div>
+      </section>
+
+      <section id="view-my-schedule" class="view">
+        <div class="section-header">
+          <h2>Mi agenda</h2>
+          <div class="filters">
+            <select id="select-my-psychologist"></select>
+            <input type="date" id="filter-my-date">
+          </div>
+        </div>
+        <div id="my-schedule-list" class="appointment-list"></div>
+        <p id="my-schedule-empty" class="empty-msg hidden">No hay citas para el psicólogo seleccionado.</p>
+      </section>
+
+      <section id="view-audit" class="view">
+        <div class="section-header">
+          <h2>Registro de modificaciones</h2>
+          <div class="filters">
+            <input type="text" id="audit-filter-patient" placeholder="Buscar por paciente">
+            <select id="audit-filter-action">
+              <option value="all">Todas las acciones</option>
+              <option value="cancel">Cancelación</option>
+              <option value="edit">Edición</option>
+            </select>
+            <select id="audit-filter-actor">
+              <option value="all">Todos los actores</option>
+            </select>
+            <input type="date" id="audit-filter-date-from" placeholder="Desde">
+            <input type="date" id="audit-filter-date-to" placeholder="Hasta">
+            <button type="button" class="btn btn-outline" id="audit-filter-clear">Limpiar</button>
+          </div>
+          <p class="section-hint">Aquí se muestran las acciones importantes realizadas sobre las citas (cancelaciones, ediciones) con autor y motivo.</p>
+        </div>
+        <div id="audit-list" class="audit-list"></div>
+        <p id="audit-empty" class="empty-msg hidden">No hay registros.</p>
       </section>
 
       <section id="view-users" class="view">
@@ -194,6 +265,23 @@
         <button type="button" class="btn btn-danger" id="btn-cancel-appointment">Cancelar cita</button>
         <button type="button" class="btn btn-outline" data-close-modal>Cerrar</button>
       </div>
+
+      <dialog id="modal-cancel-reason" class="modal">
+        <div class="modal-content">
+          <h3>Motivo de cancelación</h3>
+          <form id="form-cancel-reason">
+            <input type="hidden" id="cancel-appointment-id">
+            <div class="form-row">
+              <label for="cancel-reason">Motivo (obligatorio)</label>
+              <textarea id="cancel-reason" rows="4" required placeholder="Explica por qué se cancela la cita"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-danger">Confirmar cancelación</button>
+              <button type="button" class="btn btn-outline" data-close-modal>Cerrar</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
       <form id="form-edit-appointment" class="hidden">
         <input type="hidden" id="edit-appointment-id">
         <div class="form-row">
@@ -207,6 +295,12 @@
         <div class="form-row">
           <label for="edit-appointment-time">Hora</label>
           <input type="time" id="edit-appointment-time" required>
+        </div>
+        <div class="form-row">
+          <label for="edit-appointment-psychologist">Psicólogo asignado</label>
+          <select id="edit-appointment-psychologist">
+            <option value="">— Sin asignar —</option>
+          </select>
         </div>
         <div class="form-row">
           <label for="edit-appointment-type">Tipo de sesión</label>
@@ -233,6 +327,28 @@
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Guardar cambios</button>
           <button type="button" class="btn btn-outline" id="btn-cancel-edit">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="modal-psychologist" class="modal">
+    <div class="modal-content">
+      <h3 id="modal-psychologist-title">Nuevo psicólogo</h3>
+      <form id="form-psychologist">
+        <input type="hidden" id="psychologist-id">
+        <div class="form-row">
+          <label for="psychologist-name">Nombre completo</label>
+          <input type="text" id="psychologist-name" required placeholder="Ej. Dr. Juan Pérez">
+        </div>
+        <div class="form-row">
+          <label for="psychologist-specialty">Especialidad (opcional)</label>
+          <input type="text" id="psychologist-specialty" placeholder="Ej. Adultos, infantil...">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-outline" data-close-modal>Cancelar</button>
+          <button type="button" class="btn btn-danger hidden" id="btn-delete-psychologist">Eliminar</button>
         </div>
       </form>
     </div>
