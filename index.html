@@ -110,6 +110,7 @@
       <section id="view-appointments" class="view">
         <div class="section-header">
           <h2>Todas las citas</h2>
+          <button type="button" class="btn btn-outline" id="btn-export-appointments">↓ Exportar CSV</button>
           <div class="filters">
             <select id="filter-status">
               <option value="all">Todas</option>
@@ -175,6 +176,7 @@
         <div class="section-header">
           <h2>Pacientes</h2>
           <button type="button" class="btn btn-primary" id="btn-add-patient">+ Nuevo paciente</button>
+          <button type="button" class="btn btn-outline" id="btn-export-patients">↓ Exportar CSV</button>
         </div>
         <div id="patients-list" class="patients-grid"></div>
         <p id="patients-empty" class="empty-msg hidden">No hay pacientes registrados.</p>
@@ -221,6 +223,7 @@
       <section id="view-audit" class="view">
         <div class="section-header">
           <h2>Registro de modificaciones</h2>
+          <button type="button" class="btn btn-outline" id="btn-export-audit">↓ Exportar CSV</button>
           <div class="filters">
             <input type="text" id="audit-filter-patient" placeholder="Buscar por paciente">
             <select id="audit-filter-action">
@@ -370,6 +373,37 @@
           <button type="submit" class="btn btn-primary">Guardar</button>
           <button type="button" class="btn btn-outline" data-close-modal>Cancelar</button>
           <button type="button" class="btn btn-danger hidden" id="btn-delete-psychologist">Eliminar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="modal-psychologist-schedule" class="modal">
+    <div class="modal-content">
+      <h3>Editar horarios - <span id="schedule-psychologist-name"></span></h3>
+      <form id="form-psychologist-schedule">
+        <input type="hidden" id="schedule-psychologist-id">
+        <div class="form-row">
+          <label for="schedule-hour-start">Hora de inicio</label>
+          <input type="time" id="schedule-hour-start" required value="09:00">
+        </div>
+        <div class="form-row">
+          <label for="schedule-hour-end">Hora de fin</label>
+          <input type="time" id="schedule-hour-end" required value="18:00">
+        </div>
+        <div class="form-row">
+          <label>Días de trabajo</label>
+          <div class="days-checkbox">
+            <label><input type="checkbox" name="work-days" value="1"> Lunes</label>
+            <label><input type="checkbox" name="work-days" value="2"> Martes</label>
+            <label><input type="checkbox" name="work-days" value="3"> Miércoles</label>
+            <label><input type="checkbox" name="work-days" value="4"> Jueves</label>
+            <label><input type="checkbox" name="work-days" value="5"> Viernes</label>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Guardar horarios</button>
+          <button type="button" class="btn btn-outline" data-close-modal>Cancelar</button>
         </div>
       </form>
     </div>

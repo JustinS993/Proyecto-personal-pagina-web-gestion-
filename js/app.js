@@ -8,6 +8,7 @@ const STORAGE_APPOINTMENTS = 'psicologia-citas';
 const STORAGE_USERS = 'psicologia-usuarios';
 const STORAGE_PSYCHOLOGISTS = 'psicologia-psicologos';
 const STORAGE_AUDIT = 'psicologia-audits';
+const STORAGE_SCHEDULES = 'psicologia-horarios';
 
 // --- Estado ---
 let patients = [];
@@ -15,6 +16,7 @@ let appointments = [];
 let users = [];
 let psychologists = [];
 let auditLogs = [];
+let psychologistSchedules = {};
 let currentUser = null;
 let calendarCurrentDate = new Date();
 let chartByPsychologist = null;
@@ -757,6 +759,15 @@ function initNewAppointmentForm() {
       createdAt: new Date().toISOString(),
     };
     appointments.push(apt);
+    // registrar en auditoría
+    addAuditEntry({
+      action: 'create_appointment',
+      appointmentId: apt.id,
+      appointmentSnapshot: { date: apt.date, time: apt.time, patientId: apt.patientId, psychologistId: apt.psychologistId },
+      actorId: currentUser ? currentUser.id : undefined,
+      actorName: currentUser ? currentUser.username : 'Sistema',
+      actorRole: currentUser ? currentUser.role : 'system',
+    });
     saveAppointments();
     form.reset();
     switchToView('appointments');
@@ -882,10 +893,26 @@ function initPatientModal() {
         p.name = name;
         p.phone = phone || undefined;
         p.email = email || undefined;
+        // registrar edición de paciente
+        addAuditEntry({
+          action: 'edit_patient',
+          actorId: currentUser ? currentUser.id : undefined,
+          actorName: currentUser ? currentUser.username : 'Sistema',
+          actorRole: currentUser ? currentUser.role : 'system',
+          details: `Paciente actualizado: ${name}`,
+        });
       }
     } else {
       savedId = uid();
       patients.push({ id: savedId, name, phone: phone || undefined, email: email || undefined });
+      // registrar creación de paciente
+      addAuditEntry({
+        action: 'create_patient',
+        actorId: currentUser ? currentUser.id : undefined,
+        actorName: currentUser ? currentUser.username : 'Sistema',
+        actorRole: currentUser ? currentUser.role : 'system',
+        details: `Paciente creado: ${name}`,
+      });
     }
     savePatients();
     closePatientModal();
@@ -906,10 +933,19 @@ function initPatientModal() {
       const id = btnDelete.dataset.id;
       if (!id) return;
       if (confirm('¿Eliminar este paciente? Esta acción no se puede deshacer.')) {
+        const patientName = patients.find((x) => x.id === id)?.name || 'Desconocido';
         patients = patients.filter((x) => x.id !== id);
         savePatients();
         appointments = appointments.filter((a) => a.patientId !== id);
         saveAppointments();
+        // registrar eliminación de paciente
+        addAuditEntry({
+          action: 'delete_patient',
+          actorId: currentUser ? currentUser.id : undefined,
+          actorName: currentUser ? currentUser.username : 'Sistema',
+          actorRole: currentUser ? currentUser.role : 'system',
+          details: `Paciente eliminado: ${patientName}`,
+        });
         closePatientModal();
         renderPatientsList();
         updateDashboard();
@@ -1087,6 +1123,20 @@ function initAppointmentModal() {
         apt.status = newStatus;
       }
       apt.notes = document.getElementById('edit-appointment-notes').value.trim();
+
+      // registrar en auditoría si hay cambios significativos
+      const oldSnapshot = { date: appointments.find((a) => a.id === id)?.date, time: appointments.find((a) => a.id === id)?.time, psychologistId: appointments.find((a) => a.id === id)?.psychologistId };
+      if (prevStatus !== 'cancelled' || apt.date !== oldSnapshot.date || apt.time !== oldSnapshot.time || apt.psychologistId !== oldSnapshot.psychologistId) {
+        addAuditEntry({
+          action: 'edit_appointment',
+          appointmentId: apt.id,
+          appointmentSnapshot: { date: apt.date, time: apt.time, patientId: apt.patientId, psychologistId: apt.psychologistId },
+          actorId: currentUser ? currentUser.id : undefined,
+          actorName: currentUser ? currentUser.username : 'Sistema',
+          actorRole: currentUser ? currentUser.role : 'system',
+          details: `Cambios: fecha/hora/psicólogo actualizado`,
+        });
+      }
 
       saveAppointments();
       modalAppointment.close();
@@ -1274,11 +1324,16 @@ function renderPsychologistsList() {
       </div>
       <div class="actions">
         <button type="button" class="btn btn-outline btn-edit-psychologist" data-id="${p.id}">Editar</button>
+        <button type="button" class="btn btn-outline btn-schedule-psychologist" data-id="${p.id}">📅 Horarios</button>
       </div>
     `;
     card.querySelector('.btn-edit-psychologist').addEventListener('click', (e) => {
       e.stopPropagation();
       openPsychologistModal(p.id);
+    });
+    card.querySelector('.btn-schedule-psychologist').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openScheduleModal(p.id);
     });
     listEl.appendChild(card);
   });
@@ -1504,6 +1559,192 @@ function renderCancelInfoForAppointment(appointmentId) {
   return `<p class="cancel-info"><strong>Cancelado por:</strong> ${escapeHtml(log.actorName || '—')} <em>(${escapeHtml(log.actorRole || '')})</em> — <span class="muted">${ts}</span></p>${log.reason ? `<p><strong>Motivo:</strong> ${escapeHtml(log.reason)}</p>` : ''}`;
 }
 
+// --- Exportación a CSV ---
+function convertToCSV(data, headers) {
+  if (!data || data.length === 0) return '';
+  const csv = [headers.map((h) => `"${h}"`).join(',')];
+  data.forEach((row) => {
+    const values = headers.map((header) => {
+      const val = row[header] || '';
+      return `"${String(val).replace(/"/g, '""')}"`;
+    });
+    csv.push(values.join(','));
+  });
+  return csv.join('\n');
+}
+
+function downloadCSV(csvContent, filename) {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function exportAppointmentsToCSV() {
+  const data = appointments.map((apt) => {
+    const patient = patients.find((p) => p.id === apt.patientId);
+    const psych = psychologists.find((p) => p.id === apt.psychologistId);
+    return {
+      Paciente: patient ? patient.name : '—',
+      Teléfono: patient ? patient.phone || '—' : '—',
+      Fecha: formatDate(apt.date),
+      Hora: formatTime(apt.time),
+      Psicólogo: psych ? psych.name : '—',
+      Tipo: apt.type || 'Individual',
+      Estado: statusLabel(apt.status),
+      Notas: apt.notes || '',
+    };
+  });
+  const headers = ['Paciente', 'Teléfono', 'Fecha', 'Hora', 'Psicólogo', 'Tipo', 'Estado', 'Notas'];
+  const csv = convertToCSV(data, headers);
+  downloadCSV(csv, 'citas_' + new Date().toISOString().slice(0, 10) + '.csv');
+}
+
+function exportPatientsToCSV() {
+  const data = patients.map((p) => {
+    const numAppointments = appointments.filter((a) => a.patientId === p.id).length;
+    return {
+      Nombre: p.name,
+      Teléfono: p.phone || '—',
+      Email: p.email || '—',
+      Citas: numAppointments,
+    };
+  });
+  const headers = ['Nombre', 'Teléfono', 'Email', 'Citas'];
+  const csv = convertToCSV(data, headers);
+  downloadCSV(csv, 'pacientes_' + new Date().toISOString().slice(0, 10) + '.csv');
+}
+
+function exportAuditToCSV() {
+  const data = (auditLogs || []).map((log) => {
+    const patient = patients.find((p) => p.id === (log.appointmentSnapshot && log.appointmentSnapshot.patientId));
+    return {
+      Fecha: new Date(log.timestamp).toLocaleString(),
+      Actor: log.actorName || '—',
+      Rol: log.actorRole || '—',
+      Acción: log.action,
+      Paciente: patient ? patient.name : '—',
+      Cita: log.appointmentSnapshot && log.appointmentSnapshot.date ? formatDate(log.appointmentSnapshot.date) : '—',
+      Hora: log.appointmentSnapshot && log.appointmentSnapshot.time ? formatTime(log.appointmentSnapshot.time) : '—',
+      Motivo: log.reason || '—',
+    };
+  });
+  const headers = ['Fecha', 'Actor', 'Rol', 'Acción', 'Paciente', 'Cita', 'Hora', 'Motivo'];
+  const csv = convertToCSV(data, headers);
+  downloadCSV(csv, 'auditoria_' + new Date().toISOString().slice(0, 10) + '.csv');
+}
+
+function initExportButtons() {
+  const btnExportApts = document.getElementById('btn-export-appointments');
+  const btnExportPats = document.getElementById('btn-export-patients');
+  const btnExportAudit = document.getElementById('btn-export-audit');
+  if (btnExportApts) btnExportApts.addEventListener('click', exportAppointmentsToCSV);
+  if (btnExportPats) btnExportPats.addEventListener('click', exportPatientsToCSV);
+  if (btnExportAudit) btnExportAudit.addEventListener('click', exportAuditToCSV);
+}
+
+// --- Horarios por Psicólogo ---
+function loadSchedules() {
+  try {
+    const raw = localStorage.getItem(STORAGE_SCHEDULES);
+    psychologistSchedules = raw ? JSON.parse(raw) : {};
+  } catch {
+    psychologistSchedules = {};
+  }
+  return psychologistSchedules;
+}
+
+function saveSchedules() {
+  localStorage.setItem(STORAGE_SCHEDULES, JSON.stringify(psychologistSchedules));
+}
+
+function initScheduleModal() {
+  const modal = document.getElementById('modal-psychologist-schedule');
+  const form = document.querySelector('form[id="form-psychologist-schedule"]');
+  
+  if (modal) {
+    const btnClose = modal.querySelector('button:last-of-type');
+    if (btnClose) {
+      btnClose.addEventListener('click', (e) => {
+        e.preventDefault();
+        modal.close();
+      });
+    }
+  }
+  
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const psychologistId = form.dataset.psychologistId;
+      if (!psychologistId) return;
+      
+      const horaInicio = document.getElementById('schedule-hour-start')?.value || '';
+      const horaFin = document.getElementById('schedule-hour-end')?.value || '';
+      const diasTrabajo = [];
+      
+      document.querySelectorAll('input[name="work-days"]:checked').forEach(cb => {
+        const dayMap = { '1': 'Lunes', '2': 'Martes', '3': 'Miércoles', '4': 'Jueves', '5': 'Viernes' };
+        if (dayMap[cb.value]) diasTrabajo.push(dayMap[cb.value]);
+      });
+      
+      psychologistSchedules[psychologistId] = {
+        horaInicio,
+        horaFin,
+        diasTrabajo
+      };
+      saveSchedules();
+      
+      addAuditEntry({
+        action: 'edit_psychologist_schedule',
+        psychologistId: psychologistId,
+        actorId: currentUser?.id,
+        actorName: currentUser?.username,
+        actorRole: currentUser?.role
+      });
+      
+      modal?.close();
+    });
+  }
+}
+
+function openScheduleModal(psychologistId) {
+  const modal = document.getElementById('modal-psychologist-schedule');
+  const form = document.querySelector('form[id="form-psychologist-schedule"]');
+  if (!modal || !form) return;
+  
+  form.dataset.psychologistId = psychologistId;
+  const p = psychologists.find(x => x.id === psychologistId);
+  const modalTitle = modal.querySelector('h3');
+  if (modalTitle && p) {
+    modalTitle.textContent = 'Horarios de ' + escapeHtml(p.name);
+  }
+  
+  const schedule = psychologistSchedules[psychologistId] || {
+    horaInicio: '09:00',
+    horaFin: '17:00',
+    diasTrabajo: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
+  };
+  
+  const inputInicio = document.getElementById('schedule-hour-start');
+  const inputFin = document.getElementById('schedule-hour-end');
+  if (inputInicio) inputInicio.value = schedule.horaInicio;
+  if (inputFin) inputFin.value = schedule.horaFin;
+  
+  const dayMap = { 'Lunes': '1', 'Martes': '2', 'Miércoles': '3', 'Jueves': '4', 'Viernes': '5' };
+  document.querySelectorAll('input[name="work-days"]').forEach(cb => {
+    const dayNum = cb.value;
+    const dayName = Object.entries(dayMap).find(([name, num]) => num === dayNum)?.[0];
+    cb.checked = dayName && schedule.diasTrabajo.includes(dayName);
+  });
+  
+  modal.showModal();
+}
+
 // --- Inicio ---
 function init() {
   loadUsers();
@@ -1513,6 +1754,7 @@ function init() {
   loadPatients();
   loadAppointments();
   loadAuditLogs();
+  loadSchedules();
   initAuth();
   initLoginHandlers();
   initPatientModal();
@@ -1523,6 +1765,8 @@ function init() {
   initNav();
   initNewAppointmentForm();
   initFilters();
+  initExportButtons();
+  initScheduleModal();
   fillPatientSelect();
   fillPsychologistSelect();
   fillMyPsychologistSelect();
@@ -1533,3 +1777,5 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+
+

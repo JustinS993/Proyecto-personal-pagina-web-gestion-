@@ -461,6 +461,27 @@ body {
   font-size: 0.85rem;
 }
 
+/* Horarios */
+.days-checkbox {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.days-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--charcoal);
+}
+
+.days-checkbox input[type="checkbox"] {
+  cursor: pointer;
+}
+
 .patient-card .name {
   font-weight: 600;
   color: var(--charcoal);
