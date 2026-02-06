@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Libre+Baskerville:ital,wght@0,400;0,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <!-- Vista de Login -->
@@ -77,7 +78,27 @@
               <span class="stat-value" id="stat-patients">0</span>
               <span class="stat-label">Pacientes</span>
             </div>
+            <div class="stat-card">
+              <span class="stat-value" id="stat-completed">0</span>
+              <span class="stat-label">Completadas</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-value" id="stat-cancelled">0</span>
+              <span class="stat-label">Canceladas</span>
+            </div>
           </div>
+          
+          <div class="charts-grid">
+            <div class="chart-container">
+              <h3>Citas por psicólogo</h3>
+              <canvas id="chart-by-psychologist" style="max-height: 300px;"></canvas>
+            </div>
+            <div class="chart-container">
+              <h3>Estado de citas</h3>
+              <canvas id="chart-by-status" style="max-height: 300px;"></canvas>
+            </div>
+          </div>
+
           <div class="today-list">
             <h3>Próximas citas de hoy</h3>
             <div id="dashboard-today-list" class="appointment-list"></div>

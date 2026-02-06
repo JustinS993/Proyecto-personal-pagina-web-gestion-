@@ -17,6 +17,8 @@ let psychologists = [];
 let auditLogs = [];
 let currentUser = null;
 let calendarCurrentDate = new Date();
+let chartByPsychologist = null;
+let chartByStatus = null;
 
 // --- Utilidades ---
 function uid() {
@@ -347,6 +349,8 @@ function updateDashboard() {
   const statToday = document.getElementById('stat-today');
   const statWeek = document.getElementById('stat-week');
   const statPatients = document.getElementById('stat-patients');
+  const statCompleted = document.getElementById('stat-completed');
+  const statCancelled = document.getElementById('stat-cancelled');
   const listEl = document.getElementById('dashboard-today-list');
   const emptyEl = document.getElementById('dashboard-empty');
   if (!listEl || !emptyEl) return;
@@ -358,10 +362,14 @@ function updateDashboard() {
   const weekAppointments = appointments.filter(
     (a) => a.date && isThisWeek(a.date) && a.status !== 'cancelled'
   );
+  const completedAppointments = appointments.filter((a) => a.status === 'completed');
+  const cancelledAppointments = appointments.filter((a) => a.status === 'cancelled');
 
   if (statToday) statToday.textContent = todayAppointments.length;
   if (statWeek) statWeek.textContent = weekAppointments.length;
   if (statPatients) statPatients.textContent = patients.length;
+  if (statCompleted) statCompleted.textContent = completedAppointments.length;
+  if (statCancelled) statCancelled.textContent = cancelledAppointments.length;
 
   listEl.innerHTML = '';
 
@@ -371,12 +379,132 @@ function updateDashboard() {
 
   if (sorted.length === 0) {
     emptyEl.classList.remove('hidden');
+  } else {
+    emptyEl.classList.add('hidden');
+    sorted.forEach((apt) => {
+      const card = createAppointmentCard(apt);
+      listEl.appendChild(card);
+    });
+  }
+
+  // render charts
+  renderChartByPsychologist();
+  renderChartByStatus();
+}
+
+function renderChartByPsychologist() {
+  const canvas = document.getElementById('chart-by-psychologist');
+  if (!canvas) return;
+
+  // contar citas por psicólogo
+  const data = {};
+  appointments.forEach((apt) => {
+    if (apt.status !== 'cancelled' && apt.psychologistId) {
+      const psych = psychologists.find((p) => p.id === apt.psychologistId);
+      const name = psych ? psych.name : 'Sin asignar';
+      data[name] = (data[name] || 0) + 1;
+    }
+  });
+
+  // si no hay citas asignadas
+  if (Object.keys(data).length === 0) {
+    if (chartByPsychologist) chartByPsychologist.destroy();
+    chartByPsychologist = null;
+    canvas.style.display = 'none';
     return;
   }
-  emptyEl.classList.add('hidden');
-  sorted.forEach((apt) => {
-    const card = createAppointmentCard(apt);
-    listEl.appendChild(card);
+
+  canvas.style.display = 'block';
+  const chartData = {
+    labels: Object.keys(data),
+    datasets: [
+      {
+        label: 'Citas',
+        data: Object.values(data),
+        backgroundColor: [
+          'rgba(156, 170, 138, 0.8)',
+          'rgba(196, 167, 125, 0.8)',
+          'rgba(138, 155, 168, 0.8)',
+          'rgba(123, 158, 123, 0.8)',
+          'rgba(193, 123, 123, 0.8)',
+        ],
+        borderColor: [
+          'rgba(156, 170, 138, 1)',
+          'rgba(196, 167, 125, 1)',
+          'rgba(138, 155, 168, 1)',
+          'rgba(123, 158, 123, 1)',
+          'rgba(193, 123, 123, 1)',
+        ],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  if (chartByPsychologist) chartByPsychologist.destroy();
+  chartByPsychologist = new Chart(canvas, {
+    type: 'bar',
+    data: chartData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        y: { beginAtZero: true, max: Math.max(...Object.values(data)) + 1 },
+      },
+    },
+  });
+}
+
+function renderChartByStatus() {
+  const canvas = document.getElementById('chart-by-status');
+  if (!canvas) return;
+
+  const pending = appointments.filter((a) => a.status === 'pending').length;
+  const completed = appointments.filter((a) => a.status === 'completed').length;
+  const cancelled = appointments.filter((a) => a.status === 'cancelled').length;
+
+  if (pending === 0 && completed === 0 && cancelled === 0) {
+    if (chartByStatus) chartByStatus.destroy();
+    chartByStatus = null;
+    canvas.style.display = 'none';
+    return;
+  }
+
+  canvas.style.display = 'block';
+  const chartData = {
+    labels: ['Pendientes', 'Completadas', 'Canceladas'],
+    datasets: [
+      {
+        label: 'Citas por estado',
+        data: [pending, completed, cancelled],
+        backgroundColor: [
+          'rgba(196, 167, 125, 0.8)',
+          'rgba(123, 158, 123, 0.8)',
+          'rgba(193, 123, 123, 0.8)',
+        ],
+        borderColor: [
+          'rgba(196, 167, 125, 1)',
+          'rgba(123, 158, 123, 1)',
+          'rgba(193, 123, 123, 1)',
+        ],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  if (chartByStatus) chartByStatus.destroy();
+  chartByStatus = new Chart(canvas, {
+    type: 'doughnut',
+    data: chartData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'bottom' },
+      },
+    },
   });
 }
 
@@ -409,6 +537,34 @@ function createAppointmentCard(apt) {
 function statusLabel(s) {
   const map = { pending: 'Pendiente', completed: 'Completada', cancelled: 'Cancelada' };
   return map[s] || 'Pendiente';
+}
+
+// --- Validación de solapamientos ---
+function checkAppointmentOverlap(psychologistId, date, time, excludeAppointmentId) {
+  if (!psychologistId || !date || !time) return false; // no hay psicólogo asignado, sin validar
+  
+  // convertir tiempo a minutos desde las 00:00
+  const [h, m] = time.split(':').map(Number);
+  const startMinutes = h * 60 + m;
+  const endMinutes = startMinutes + 60; // asumimos 1 hora de duración
+  
+  // buscar conflictos
+  const conflict = appointments.find((apt) => {
+    if (!apt || apt.id === excludeAppointmentId) return false; // excluir la cita actual si se edita
+    if (apt.psychologistId !== psychologistId) return false; // otro psicólogo
+    if (apt.date !== date) return false; // otro día
+    if (apt.status === 'cancelled') return false; // no contar canceladas
+    
+    // calcular horarios de la cita existente
+    const [h2, m2] = (apt.time || '00:00').split(':').map(Number);
+    const aptStart = h2 * 60 + m2;
+    const aptEnd = aptStart + 60;
+    
+    // si hay solapamiento en horarios
+    return !(endMinutes <= aptStart || startMinutes >= aptEnd);
+  });
+  
+  return !!conflict;
 }
 
 function escapeHtml(text) {
@@ -582,6 +738,13 @@ function initNewAppointmentForm() {
     if (!patientId || !date || !time) return;
 
     const psychologistId = document.getElementById('appointment-psychologist').value || undefined;
+    
+    // validar solapamientos
+    if (psychologistId && checkAppointmentOverlap(psychologistId, date, time)) {
+      alert('El psicólogo ya tiene una cita a esa hora. Por favor, elige otro horario.');
+      return;
+    }
+
     const apt = {
       id: uid(),
       patientId,
@@ -889,10 +1052,20 @@ function initAppointmentModal() {
         return;
       }
 
+      const psychologistId = document.getElementById('edit-appointment-psychologist').value || undefined;
+      const newDate = document.getElementById('edit-appointment-date').value;
+      const newTime = document.getElementById('edit-appointment-time').value;
+      
+      // validar solapamientos (excluyendo la cita actual)
+      if (psychologistId && checkAppointmentOverlap(psychologistId, newDate, newTime, id)) {
+        alert('El psicólogo ya tiene una cita a esa hora. Por favor, elige otro horario.');
+        return;
+      }
+
       apt.patientId = patientId;
-      apt.psychologistId = document.getElementById('edit-appointment-psychologist').value || undefined;
-      apt.date = document.getElementById('edit-appointment-date').value;
-      apt.time = document.getElementById('edit-appointment-time').value;
+      apt.psychologistId = psychologistId;
+      apt.date = newDate;
+      apt.time = newTime;
       apt.type = document.getElementById('edit-appointment-type').value;
       const prevStatus = apt.status;
       const newStatus = document.getElementById('edit-appointment-status').value;

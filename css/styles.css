@@ -194,6 +194,29 @@ body {
   margin-top: 0.5rem;
 }
 
+/* Charts grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.chart-container {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(156, 170, 138, 0.15);
+}
+
+.chart-container h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--charcoal);
+  margin: 0 0 1rem;
+}
+
 /* Section header */
 .section-header {
   display: flex;
