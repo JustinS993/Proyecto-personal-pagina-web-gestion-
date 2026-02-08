@@ -569,6 +569,36 @@ function checkAppointmentOverlap(psychologistId, date, time, excludeAppointmentI
   return !!conflict;
 }
 
+// Validar si una cita está dentro del horario disponible del psicólogo
+function isAppointmentWithinSchedule(psychologistId, date, time) {
+  if (!psychologistId || !psychologistSchedules[psychologistId]) return true; // sin restricción si no hay horario
+  
+  const schedule = psychologistSchedules[psychologistId];
+  if (!schedule.horaInicio || !schedule.horaFin || !schedule.diasTrabajo) return true;
+  
+  // Verificar que el día laboral esté en la lista de días de trabajo
+  const dateObj = new Date(date + 'T00:00:00');
+  const dayNum = dateObj.getDay(); // 0=Dom, 1=Lun, 2=Mar, etc.
+  const dayMap = { 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 0: 'Domingo', 6: 'Sábado' };
+  const dayName = dayMap[dayNum];
+  
+  if (!schedule.diasTrabajo.includes(dayName)) return false; // no trabaja este día
+  
+  // Verificar que la hora esté dentro del rango
+  const [h, m] = time.split(':').map(Number);
+  const appointmentMinutes = h * 60 + m;
+  const appointmentEndMinutes = appointmentMinutes + 60;
+  
+  const [startH, startM] = schedule.horaInicio.split(':').map(Number);
+  const scheduleStartMinutes = startH * 60 + startM;
+  
+  const [endH, endM] = schedule.horaFin.split(':').map(Number);
+  const scheduleEndMinutes = endH * 60 + endM;
+  
+  // cita debe estar completamente dentro del horario
+  return appointmentMinutes >= scheduleStartMinutes && appointmentEndMinutes <= scheduleEndMinutes;
+}
+
 function escapeHtml(text) {
   if (!text) return '';
   const el = document.createElement('span');
@@ -744,6 +774,12 @@ function initNewAppointmentForm() {
     // validar solapamientos
     if (psychologistId && checkAppointmentOverlap(psychologistId, date, time)) {
       alert('El psicólogo ya tiene una cita a esa hora. Por favor, elige otro horario.');
+      return;
+    }
+    
+    // validar disponibilidad horaria
+    if (psychologistId && !isAppointmentWithinSchedule(psychologistId, date, time)) {
+      alert('Esta cita est� fuera del horario disponible del psic�logo.');
       return;
     }
 
@@ -1095,6 +1131,12 @@ function initAppointmentModal() {
       // validar solapamientos (excluyendo la cita actual)
       if (psychologistId && checkAppointmentOverlap(psychologistId, newDate, newTime, id)) {
         alert('El psicólogo ya tiene una cita a esa hora. Por favor, elige otro horario.');
+        return;
+      }
+      
+      // validar disponibilidad horaria
+      if (psychologistId && !isAppointmentWithinSchedule(psychologistId, newDate, newTime)) {
+        alert('Esta cita est� fuera del horario disponible del psic�logo.');
         return;
       }
 
@@ -1667,16 +1709,16 @@ function initScheduleModal() {
   const modal = document.getElementById('modal-psychologist-schedule');
   const form = document.querySelector('form[id="form-psychologist-schedule"]');
   
+  // Cerrar modal con botón [data-close-modal]
   if (modal) {
-    const btnClose = modal.querySelector('button:last-of-type');
-    if (btnClose) {
-      btnClose.addEventListener('click', (e) => {
-        e.preventDefault();
+    modal.querySelectorAll('[data-close-modal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
         modal.close();
       });
-    }
+    });
   }
   
+  // Guardar horarios
   if (form) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();

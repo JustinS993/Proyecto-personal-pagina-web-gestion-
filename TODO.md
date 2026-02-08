@@ -1,9 +1,39 @@
-# TODO: A帽adir pantalla de calendario para psic贸logos
+# TODO: Caracter韘ticas Implementadas
 
-## Tareas Pendientes
-- [x] Agregar nueva secci贸n de vista en index.html para "view-psychologist-calendar"
-- [x] Agregar bot贸n de navegaci贸n en nav para "Calendario Psic贸logo"
-- [x] En js/app.js, agregar funci贸n renderPsychologistCalendar() que incluya select para elegir psic贸logo y calendario filtrado
-- [x] Actualizar initNav() para manejar la nueva vista
-- [x] Agregar l贸gica para filtrar citas por psic贸logo seleccionado en el calendario
-- [x] Probar la funcionalidad y ajustar si es necesario
+##  Completado
+
+### Core
+- [x] Gesti髇 de pacientes (crear, editar, eliminar)
+- [x] Gesti髇 de citas (crear, editar, cancelar)
+- [x] Gesti髇 de psic髄ogos (crear, editar)
+- [x] Autenticaci髇 (admin, empleado)
+- [x] Validaci髇 de solapamientos de citas por psic髄ogo
+
+### Vistas
+- [x] Dashboard con estad韘ticas y gr醘icos (Chart.js)
+- [x] Panel de citas
+- [x] Panel de pacientes
+- [x] Panel de psic髄ogos
+- [x] Vista "Mi agenda" para psic髄ogos
+- [x] Calendario interactivo
+
+### Auditor韆 y Reportes
+- [x] Registro de auditor韆 completo (crear, editar, eliminar, cancelar)
+- [x] Filtros en registro de auditor韆
+- [x] Exportaci髇 a CSV (citas, pacientes, auditor韆)
+
+### Horarios
+- [x] Modal de edici髇 de horarios por psic髄ogo
+- [x] Guardado de horarios en localStorage
+- [x] Validaci髇 de disponibilidad al crear/editar citas
+- [x] Auditor韆 de cambios de horarios
+
+##  Posibles mejoras futuras
+
+- [ ] Backend (Node.js/Express o similar)
+- [ ] Base de datos persistente (MongoDB, PostgreSQL)
+- [ ] Env韔 de correos/SMS de confirmaci髇
+- [ ] Recordatorios de citas
+- [ ] Reportes avanzados
+- [ ] Multi-idioma
+- [ ] Tema oscuro
